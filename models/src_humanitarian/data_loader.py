@@ -1,21 +1,17 @@
 import os
 import torch
-import pandas as pd
 from PIL import Image, UnidentifiedImageError
 from torch.utils.data import Dataset
+from transformers import BertTokenizer
+from torchvision import transforms
+import pandas as pd
 
-class CrisisMMDDataset(Dataset):
-    def __init__(self, annotations_file, img_dir, tokenizer, transform=None):
-        """
-        Args:
-            annotations_file (string): Path to the csv file with annotations.
-            img_dir (string): Base directory for constructing the full image path.
-            tokenizer: A BERT tokenizer instance.
-            transform (callable, optional): Optional transform to be applied on a sample.
-        """
+
+class HumanitarianDataset(Dataset):
+    def __init__(self, annotations_file, img_dir, transform=None):
         self.annotations_df = pd.read_csv(annotations_file)
         self.img_dir = img_dir
-        self.tokenizer = tokenizer
+        self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         self.transform = transform
 
     def __len__(self):
@@ -25,18 +21,12 @@ class CrisisMMDDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        # --- UPDATED TO MATCH YOUR CSV ---
-        # 1. Get Text and Label
-        # Use the 'text' column for text and 'label' for the direct integer label.
-        text = self.annotations_df.loc[idx, 'text']
-        label = self.annotations_df.loc[idx, 'label']
-
-        # 2. Get Image
-        # The 'image_path' column now contains the relative path to the image.
-        # We join it with the base image directory provided.
-        img_relative_path = self.annotations_df.loc[idx, 'image_path']
+        # Use iloc to access rows by integer position to avoid KeyErrors
+        row = self.annotations_df.iloc[idx]
+        text = row['text']
+        label = row['label']
+        img_relative_path = row['image_path']
         img_path = os.path.join(self.img_dir, img_relative_path)
-        # --- END OF UPDATE ---
 
         try:
             image = Image.open(img_path).convert('RGB')
@@ -44,16 +34,14 @@ class CrisisMMDDataset(Dataset):
             print(f"Warning: Could not load image {img_path}. Using a dummy image.")
             image = Image.new('RGB', (224, 224), color='red')
 
-        # 3. Tokenize Text
         text_encoding = self.tokenizer(
-            str(text), # Ensure text is a string
+            str(text),
             max_length=128,
             padding='max_length',
             truncation=True,
             return_tensors='pt'
         )
 
-        # 4. Apply Image Transforms
         if self.transform:
             image = self.transform(image)
 

@@ -1,6 +1,7 @@
 data/
-models/src/best_model.pth
-models/src/best_model_new.pth
+models/src_informative/best_model.pth
+models/src_humanitarian/best_humanitarian_model.pth
 models/data/
 .idea/
 backend/__pycache__/
+models/src_informative/__pycache__/

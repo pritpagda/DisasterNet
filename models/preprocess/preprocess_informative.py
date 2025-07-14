@@ -2,7 +2,7 @@ import pandas as pd
 import os
 
 ANNOTATIONS_DIR = "../../data/CrisisMMD_v2.0/crisismmd_datasplit_all/crisismmd_datasplit_all"
-OUTPUT_DIR = "data/processed"
+OUTPUT_DIR = "data/processed_humanitarian"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 splits = {
@@ -32,7 +32,7 @@ def process_file(split_name, filename):
     # Remove any leading/trailing spaces in image_path
     df["image_path"] = df["image_path"].str.strip()
 
-    # Save processed CSV
+    # Save processed_informative CSV
     out_path = os.path.join(OUTPUT_DIR, f"{split_name}.csv")
     df.to_csv(out_path, index=False)
     print(f"[{split_name}] Processed {len(df)} rows, saved to {out_path}")

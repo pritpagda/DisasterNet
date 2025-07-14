@@ -10,12 +10,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from data_loader import CrisisMMDDataset
-from model import DisasterNetV1
-
+from data_loader import HumanitarianDataset
+from model import HumanitarianNetV1
 
 def plot_confusion_matrix(cm, class_names, save_path=None):
-    """Plots and optionally saves the confusion matrix."""
     plt.figure(figsize=(6, 6))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=class_names, yticklabels=class_names)
     plt.ylabel('True label')
@@ -29,21 +27,17 @@ def plot_confusion_matrix(cm, class_names, save_path=None):
         plt.show()
     plt.close()
 
-
 def evaluate():
-    # --- Configuration ---
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    TEST_CSV_PATH = '../data/processed/test.csv'
+    TEST_CSV_PATH = '../data/processed_humanitarian/test.csv'
     IMAGE_DIR = '../data/'
-    MODEL_PATH = 'best_model.pth'
+    MODEL_PATH = 'best_humanitarian_model.pth'
 
-    # --- Hyperparameters (from training) ---
     batch_size = 16
     bert_model_name = 'bert-base-uncased'
 
-    # --- Tokenizer and Image Transform ---
     tokenizer = BertTokenizer.from_pretrained(bert_model_name)
     image_transform = transforms.Compose([
         transforms.Resize((224, 224)),
@@ -51,20 +45,16 @@ def evaluate():
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
-    # --- Dataset & DataLoader ---
-    test_dataset = CrisisMMDDataset(TEST_CSV_PATH, IMAGE_DIR, tokenizer, image_transform)
+    test_dataset = HumanitarianDataset(TEST_CSV_PATH, IMAGE_DIR, image_transform)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
 
-    # --- Model Loading ---
-    model = DisasterNetV1(num_classes=2, unfreeze_bert_layers=0, unfreeze_resnet_layers=0)
+    model = HumanitarianNetV1(num_classes=2, unfreeze_bert_layers=0, unfreeze_resnet_layers=0)
     model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
     model = model.to(device)
     model.eval()
 
-    # --- Loss Function ---
     criterion = nn.CrossEntropyLoss()
 
-    # --- Evaluation Loop ---
     all_preds = []
     all_labels = []
     total_test_loss = 0
@@ -90,7 +80,6 @@ def evaluate():
     recall = recall_score(all_labels, all_preds, average='macro')
     cm = confusion_matrix(all_labels, all_preds)
 
-    # --- Results ---
     print("\n--- Test Evaluation ---")
     print(f"Test Loss     : {avg_test_loss:.4f}")
     print(f"F1 Score      : {f1:.4f}")

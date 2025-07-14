@@ -37,10 +37,10 @@ def train():
     print(f"Using device: {device}")
 
     # --- CORRECTED PATHS ---
-    # Since train.py is in 'src', we go up one level ('../') to get to 'models/'
+    # Since train.py is in 'src_informative', we go up one level ('../') to get to 'models/'
     IMAGE_DIR = '../data/'
-    TRAIN_CSV_PATH = '../data/processed/train.csv'
-    VAL_CSV_PATH = '../data/processed/dev.csv'
+    TRAIN_CSV_PATH = '../data/processed_informative/train.csv'
+    VAL_CSV_PATH = '../data/processed_informative/dev.csv'
     # --- END CORRECTIONS ---
 
     # --- 3. Data Loading ---
