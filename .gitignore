@@ -3,3 +3,4 @@ models/src/best_model.pth
 models/src/best_model_new.pth
 models/data/
 .idea/
+backend/__pycache__/

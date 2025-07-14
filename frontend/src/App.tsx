@@ -1,8 +1,16 @@
 import React from "react";
-import AuthTestPage from "./Pages/AuthTestPage";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import AuthTestPage from "./Pages/AuthTestPage"; // or wherever your component is
 
 function App() {
-  return <AuthTestPage />;
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<AuthTestPage />} />
+        {/* Add other routes here */}
+      </Routes>
+    </Router>
+  );
 }
 
 export default App;

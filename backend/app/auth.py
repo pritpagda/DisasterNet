@@ -2,9 +2,10 @@ import firebase_admin
 from fastapi import HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from firebase_admin import credentials, auth as firebase_auth
+import os
 
-# Path to Firebase service account
-SERVICE_ACCOUNT_PATH = "disaster-feea2-firebase-adminsdk-fbsvc-054b28de48.json"
+SERVICE_ACCOUNT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "disaster-feea2-firebase-adminsdk-fbsvc-054b28de48.json"))
+
 
 # Initialize Firebase app only once
 if not firebase_admin._apps:
