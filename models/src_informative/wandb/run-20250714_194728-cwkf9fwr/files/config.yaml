@@ -1,0 +1,77 @@
+_wandb:
+    value:
+        cli_version: 0.21.0
+        e:
+            3wshlgghcey6esidiyddba0u04mq1762:
+                codePath: models\src_informative\train.py
+                codePathLocal: train.py
+                cpu_count: 24
+                cpu_count_logical: 32
+                cudaVersion: "12.9"
+                disk:
+                    /:
+                        total: "1021821579264"
+                        used: "830916808704"
+                email: pritpagda@gmail.com
+                executable: C:\Full_FR\Project\.venv\Scripts\python.exe
+                git:
+                    commit: 421919bb0d02cbf1144053ee183fb6d2a81a0be4
+                    remote: https://github.com/pritpagda/DisasterNet.git
+                gpu: NVIDIA GeForce RTX 4060 Laptop GPU
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Ada
+                      cudaCores: 3072
+                      memoryTotal: "8585740288"
+                      name: NVIDIA GeForce RTX 4060 Laptop GPU
+                      uuid: GPU-74cd35d2-c5a5-9df6-ac25-d1ea6a883434
+                host: LAPTOP-EO6TL09T
+                memory:
+                    total: "34053414912"
+                os: Windows-11-10.0.26100-SP0
+                program: C:\Full_FR\Project\models\src_informative\train.py
+                python: CPython 3.12.5
+                root: C:\Full_FR\Project\models\src_informative
+                startedAt: "2025-07-14T23:47:28.538672Z"
+                writerId: 3wshlgghcey6esidiyddba0u04mq1762
+        m: []
+        python_version: 3.12.5
+        t:
+            "1":
+                - 1
+                - 5
+                - 11
+                - 41
+                - 49
+                - 53
+            "2":
+                - 1
+                - 5
+                - 11
+                - 41
+                - 49
+                - 53
+            "3":
+                - 1
+                - 16
+            "4": 3.12.5
+            "5": 0.21.0
+            "6": 4.53.1
+            "8":
+                - 3
+            "12": 0.21.0
+            "13": windows-amd64
+batch_size:
+    value: 16
+bert_model_name:
+    value: bert-base-uncased
+epochs:
+    value: 15
+learning_rate:
+    value: 1e-05
+num_classes:
+    value: 2
+unfreeze_bert_layers:
+    value: 4
+unfreeze_resnet_layers:
+    value: 3

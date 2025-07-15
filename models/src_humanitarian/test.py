@@ -86,7 +86,7 @@ def evaluate():
     print(f"Precision     : {precision:.4f}")
     print(f"Recall        : {recall:.4f}")
     print("\nConfusion Matrix:")
-    plot_confusion_matrix(cm, class_names=['not_informative', 'informative'])
+    plot_confusion_matrix(cm, class_names=['not_humanitarian', 'humanitarian'])
 
 if __name__ == '__main__':
     evaluate()

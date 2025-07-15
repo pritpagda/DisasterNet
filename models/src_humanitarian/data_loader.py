@@ -3,7 +3,6 @@ import torch
 from PIL import Image, UnidentifiedImageError
 from torch.utils.data import Dataset
 from transformers import BertTokenizer
-from torchvision import transforms
 import pandas as pd
 
 
@@ -21,7 +20,6 @@ class HumanitarianDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        # Use iloc to access rows by integer position to avoid KeyErrors
         row = self.annotations_df.iloc[idx]
         text = row['text']
         label = row['label']

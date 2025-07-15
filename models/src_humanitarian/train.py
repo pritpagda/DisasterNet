@@ -7,7 +7,7 @@ from sklearn.metrics import f1_score, precision_score, recall_score, confusion_m
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 from torchvision import transforms
-from transformers import BertTokenizer, get_linear_schedule_with_warmup
+from transformers import get_linear_schedule_with_warmup
 from torch.cuda.amp import autocast, GradScaler
 import numpy as np
 
@@ -51,8 +51,8 @@ class EarlyStopping:
         return False
 
 
-def train():
-    wandb.init(project="humanitarian-net-v1")
+def train(config):
+    wandb.init(project="Humanitarian", config=config)
     config = wandb.config
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -61,8 +61,6 @@ def train():
     IMAGE_DIR = '../data/'
     TRAIN_CSV_PATH = '../data/processed_humanitarian/train.csv'
     VAL_CSV_PATH = '../data/processed_humanitarian/dev.csv'
-
-    tokenizer = BertTokenizer.from_pretrained(config.bert_model_name)
 
     train_transform = transforms.Compose([
         transforms.RandomResizedCrop(224, scale=(0.8, 1.0)),
@@ -82,19 +80,22 @@ def train():
     train_dataset = HumanitarianDataset(TRAIN_CSV_PATH, IMAGE_DIR, train_transform)
     val_dataset = HumanitarianDataset(VAL_CSV_PATH, IMAGE_DIR, val_transform)
 
+    num_workers = 4 if torch.cuda.is_available() else 0
+    pin_memory = torch.cuda.is_available()
+
     train_loader = DataLoader(train_dataset, batch_size=config.batch_size,
-                              shuffle=True, num_workers=4, pin_memory=True)
+                              shuffle=True, num_workers=num_workers, pin_memory=pin_memory)
     val_loader = DataLoader(val_dataset, batch_size=config.batch_size,
-                            shuffle=False, num_workers=4, pin_memory=True)
+                            shuffle=False, num_workers=num_workers, pin_memory=pin_memory)
 
     model = HumanitarianNetV1(num_classes=config.num_classes,
-                              unfreeze_bert_layers=config.unfreeze_bert_layers,
-                              unfreeze_resnet_layers=config.unfreeze_resnet_layers).to(device)
+                           unfreeze_bert_layers=config.unfreeze_bert_layers,
+                           unfreeze_resnet_layers=config.unfreeze_resnet_layers).to(device)
 
     wandb.watch(model, log="all")
 
-    # Calculate class weights if dataset is imbalanced
-    labels = [item['label'].item() for item in train_dataset]
+    # Compute class weights
+    labels = [int(item['label']) for item in train_dataset]
     class_sample_count = np.bincount(labels)
     weight_per_class = 1. / (class_sample_count + 1e-6)
     weights = torch.tensor(weight_per_class, dtype=torch.float).to(device)
@@ -108,7 +109,6 @@ def train():
                                                 num_training_steps=total_steps)
 
     scaler = GradScaler()
-
     best_f1 = 0.0
     early_stopping = EarlyStopping(patience=3, verbose=True)
 
@@ -185,7 +185,8 @@ def train():
             torch.save(model.state_dict(), "best_humanitarian_model.pth")
 
             cm = confusion_matrix(all_labels, all_preds)
-            cm_plot = plot_confusion_matrix(cm, class_names=['class_0', 'class_1'])  # update names if needed
+            class_names = [f"class_{i}" for i in range(config.num_classes)]
+            cm_plot = plot_confusion_matrix(cm, class_names=class_names)
             wandb.log({"confusion_matrix": wandb.Image(cm_plot)})
             plt.close(cm_plot)
 
@@ -206,6 +207,4 @@ if __name__ == '__main__':
         'unfreeze_resnet_layers': 3,
         'num_classes': 2
     }
-
-    wandb.init(config=hyperparameters)
-    train()
+    train(hyperparameters)

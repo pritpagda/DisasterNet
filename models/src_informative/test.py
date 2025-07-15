@@ -10,8 +10,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from data_loader import CrisisMMDDataset
-from model import DisasterNetV1
+from data_loader import InformativeDataset
+from model import InformativeNet
 
 def plot_confusion_matrix(cm, class_names, save_path=None):
     plt.figure(figsize=(6, 6))
@@ -45,10 +45,10 @@ def evaluate():
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
-    test_dataset = CrisisMMDDataset(TEST_CSV_PATH, IMAGE_DIR, tokenizer, image_transform)
+    test_dataset = InformativeDataset(TEST_CSV_PATH, IMAGE_DIR, image_transform)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
 
-    model = DisasterNetV1(num_classes=2, unfreeze_bert_layers=0, unfreeze_resnet_layers=0)
+    model = InformativeNet(num_classes=2, unfreeze_bert_layers=0, unfreeze_resnet_layers=0)
     model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
     model = model.to(device)
     model.eval()

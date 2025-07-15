@@ -4,9 +4,9 @@ from torchvision import models
 from transformers import BertModel
 
 
-class DisasterNetV1(nn.Module):
+class InformativeNet(nn.Module):
     def __init__(self, num_classes=2, unfreeze_bert_layers=2, unfreeze_resnet_layers=2):
-        super(DisasterNetV1, self).__init__()
+        super(InformativeNet, self).__init__()
 
         self.bert = BertModel.from_pretrained('bert-base-uncased')
         for param in self.bert.parameters():

@@ -4,13 +4,14 @@ import pandas as pd
 import torch
 from PIL import Image, UnidentifiedImageError
 from torch.utils.data import Dataset
+from transformers import BertTokenizer
 
 
-class CrisisMMDDataset(Dataset):
-    def __init__(self, annotations_file, img_dir, tokenizer, transform=None):
+class InformativeDataset(Dataset):
+    def __init__(self, annotations_file, img_dir, transform=None):
         self.annotations_df = pd.read_csv(annotations_file)
         self.img_dir = img_dir
-        self.tokenizer = tokenizer
+        self.tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
         self.transform = transform
 
     def __len__(self):
@@ -20,10 +21,10 @@ class CrisisMMDDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        text = self.annotations_df.loc[idx, 'text']
-        label = self.annotations_df.loc[idx, 'label']
-
-        img_relative_path = self.annotations_df.loc[idx, 'image_path']
+        row = self.annotations_df.iloc[idx]
+        text = row['text']
+        label = row['label']
+        img_relative_path = row['image_path']
         img_path = os.path.join(self.img_dir, img_relative_path)
 
         try:
