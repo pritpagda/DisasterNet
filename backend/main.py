@@ -1,10 +1,12 @@
 import datetime
 
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
-from app.auth import get_current_user
-from app.database import connect_to_db
+from .app.auth import get_current_user
+from .app.database import connect_to_db
+from .app.predict_explain import predict_explain
 
 app = FastAPI(title="DisasterNet")
 
@@ -35,3 +37,10 @@ def health():
 @app.get("/auth/me")
 async def auth_me(user=Depends(get_current_user)):
     return {"uid": user["uid"], "email": user.get("email")}
+
+
+@app.post("/predict")
+async def predict_post(text: str = Form(...), image: UploadFile = File(...)):
+    image_bytes = await image.read()
+    result = predict_explain(text, image_bytes)
+    return JSONResponse(result)

@@ -5,7 +5,6 @@ from torch.utils.data import Dataset
 from transformers import BertTokenizer
 import pandas as pd
 
-
 class HumanitarianDataset(Dataset):
     def __init__(self, annotations_file, img_dir, transform=None):
         self.annotations_df = pd.read_csv(annotations_file)
@@ -21,19 +20,19 @@ class HumanitarianDataset(Dataset):
             idx = idx.tolist()
 
         row = self.annotations_df.iloc[idx]
-        text = row['text']
-        label = row['label']
+        text = str(row['text'])
+        label = int(row['label'])
         img_relative_path = row['image_path']
         img_path = os.path.join(self.img_dir, img_relative_path)
 
         try:
             image = Image.open(img_path).convert('RGB')
-        except (FileNotFoundError, UnidentifiedImageError):
+        except (FileNotFoundError, UnidentifiedImageError, OSError):
             print(f"Warning: Could not load image {img_path}. Using a dummy image.")
             image = Image.new('RGB', (224, 224), color='red')
 
         text_encoding = self.tokenizer(
-            str(text),
+            text,
             max_length=128,
             padding='max_length',
             truncation=True,

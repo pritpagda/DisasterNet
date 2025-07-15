@@ -1,63 +1,51 @@
-import os
 import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader
 from torchvision import transforms
-from transformers import BertTokenizer
-
-from sklearn.metrics import f1_score, precision_score, recall_score, confusion_matrix
-import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+from sklearn.metrics import classification_report, confusion_matrix, f1_score
 from data_loader import HumanitarianDataset
 from model import HumanitarianNetV1
 
-def plot_confusion_matrix(cm, class_names, save_path=None):
-    plt.figure(figsize=(6, 6))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=class_names, yticklabels=class_names)
+def plot_confusion_matrix(cm, class_names, file_path="confusion_matrix.png"):
+    plt.figure(figsize=(8, 8), dpi=100)
+    sns.heatmap(cm, annot=True, fmt='d', cmap=plt.cm.Blues,
+                xticklabels=class_names, yticklabels=class_names)
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
     plt.title('Confusion Matrix')
-
-    if save_path:
-        plt.savefig(save_path)
-        print(f"Confusion matrix saved to {save_path}")
-    else:
-        plt.show()
+    plt.tight_layout()
+    plt.savefig(file_path)
+    plt.show()   # Display the confusion matrix window
     plt.close()
 
-def evaluate():
+def test_model(csv_path, image_dir, model_path, batch_size=16, num_classes=7):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    TEST_CSV_PATH = '../data/processed_humanitarian/test.csv'
-    IMAGE_DIR = '../data/'
-    MODEL_PATH = 'best_humanitarian_model.pth'
-
-    batch_size = 16
-    bert_model_name = 'bert-base-uncased'
-
-    tokenizer = BertTokenizer.from_pretrained(bert_model_name)
-    image_transform = transforms.Compose([
+    val_transform = transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                             std=[0.229, 0.224, 0.225]),
     ])
 
-    test_dataset = HumanitarianDataset(TEST_CSV_PATH, IMAGE_DIR, image_transform)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+    test_dataset = HumanitarianDataset(csv_path, image_dir, val_transform)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=0,
+                             pin_memory=torch.cuda.is_available())
 
-    model = HumanitarianNetV1(num_classes=2, unfreeze_bert_layers=0, unfreeze_resnet_layers=0)
-    model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
-    model = model.to(device)
+    model = HumanitarianNetV1(
+        num_classes=num_classes,
+        unfreeze_bert_layers=0,
+        unfreeze_resnet_layers=0
+    )
+    model.load_state_dict(torch.load(model_path, map_location=device))
+    model.to(device)
     model.eval()
-
-    criterion = nn.CrossEntropyLoss()
 
     all_preds = []
     all_labels = []
-    total_test_loss = 0
 
     with torch.no_grad():
         for batch in test_loader:
@@ -67,26 +55,26 @@ def evaluate():
             labels = batch['label'].to(device)
 
             outputs = model(input_ids, attention_mask, images)
-            loss = criterion(outputs, labels)
-            total_test_loss += loss.item()
-
             _, preds = torch.max(outputs, dim=1)
+
             all_preds.extend(preds.cpu().numpy())
             all_labels.extend(labels.cpu().numpy())
 
-    avg_test_loss = total_test_loss / len(test_loader)
-    f1 = f1_score(all_labels, all_preds, average='macro')
-    precision = precision_score(all_labels, all_preds, average='macro')
-    recall = recall_score(all_labels, all_preds, average='macro')
-    cm = confusion_matrix(all_labels, all_preds)
+    f1 = f1_score(all_labels, all_preds, average='macro', zero_division=0)
+    class_names = [f"class_{i}" for i in range(num_classes)]
 
-    print("\n--- Test Evaluation ---")
-    print(f"Test Loss     : {avg_test_loss:.4f}")
-    print(f"F1 Score      : {f1:.4f}")
-    print(f"Precision     : {precision:.4f}")
-    print(f"Recall        : {recall:.4f}")
-    print("\nConfusion Matrix:")
-    plot_confusion_matrix(cm, class_names=['not_humanitarian', 'humanitarian'])
+    print(f"Test Macro F1 Score: {f1:.4f}")
+    print("Classification Report:")
+    print(classification_report(all_labels, all_preds, target_names=class_names, zero_division=0))
+
+    cm = confusion_matrix(all_labels, all_preds)
+    plot_confusion_matrix(cm, class_names)
+
+    print(f"Confusion matrix saved as 'confusion_matrix.png'")
 
 if __name__ == '__main__':
-    evaluate()
+    TEST_CSV_PATH = '../data/processed_humanitarian/test.csv'
+    IMAGE_DIR = '../data/'
+    MODEL_PATH = 'best_f1_model.pth'
+
+    test_model(TEST_CSV_PATH, IMAGE_DIR, MODEL_PATH, batch_size=16, num_classes=7)

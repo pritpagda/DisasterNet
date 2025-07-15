@@ -3,9 +3,8 @@ import torch.nn as nn
 from torchvision import models
 from transformers import BertModel
 
-
 class HumanitarianNetV1(nn.Module):
-    def __init__(self, num_classes=2, unfreeze_bert_layers=2, unfreeze_resnet_layers=2):
+    def __init__(self, num_classes=7, unfreeze_bert_layers=2, unfreeze_resnet_layers=2):
         super(HumanitarianNetV1, self).__init__()
 
         self.bert = BertModel.from_pretrained('bert-base-uncased')
@@ -30,8 +29,12 @@ class HumanitarianNetV1(nn.Module):
 
         bert_hidden_size = self.bert.config.hidden_size
 
-        self.fusion = nn.Sequential(nn.Linear(bert_hidden_size + resnet_out_features, 512), nn.ReLU(), nn.Dropout(0.5),
-                                    nn.Linear(512, num_classes))
+        self.fusion = nn.Sequential(
+            nn.Linear(bert_hidden_size + resnet_out_features, 512),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(512, num_classes)
+        )
 
     def forward(self, input_ids, attention_mask, image):
         bert_outputs = self.bert(input_ids=input_ids, attention_mask=attention_mask)

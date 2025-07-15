@@ -3,6 +3,10 @@ models/src_informative/best_informative_model.pth
 models/src_humanitarian/best_humanitarian_model.pth
 models/data/
 .idea/
-backend/__pycache__/
 models/src_informative/__pycache__/
 models/src_humanitarian/__pycache__/
+models/src_humanitarian/best_confusion_matrix.png
+models/src_humanitarian/best_f1_model.pth
+backend/__pycache__
+models/src_informative/best_humanitarian_model.pth
+backend/__pycache__/

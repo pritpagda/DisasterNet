@@ -1,63 +1,66 @@
-import sys
-import os
+from io import BytesIO
+
 import torch
+from PIL import Image
 from torchvision import transforms
 from transformers import BertTokenizer
-from PIL import Image
-import base64
-import io
 
-# Add models/src_informative to Python path (adjust relative to this file location)
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../models/src_informative")))
+from models.src_humanitarian.model import HumanitarianNetV1
+from models.src_informative.model import InformativeNet
 
-from model import DisasterNetV1  # Your model class
+# --- Device setup
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# Initialize tokenizer and model once
+# --- Load Tokenizer
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
-model = DisasterNetV1()
 
-# Load model weights
-MODEL_WEIGHTS_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../models/src_informative/best_model.pth"))
-model.load_state_dict(torch.load(MODEL_WEIGHTS_PATH, map_location=torch.device('cpu')))
-model.eval()
+# --- Image preprocessing
+image_transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ])
 
-# Define image transforms as expected by ResNet50
-image_transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize(
-        mean=[0.485, 0.456, 0.406],  # ImageNet means
-        std=[0.229, 0.224, 0.225]    # ImageNet stds
-    )
-])
+# --- Load Humanitarian Model
+humanitarian_model = HumanitarianNetV1(num_classes=7)
+humanitarian_model.load_state_dict(
+    torch.load("models/src_humanitarian/best_humanitarian_model.pth", map_location=device))
+humanitarian_model.to(device)
+humanitarian_model.eval()
 
-def preprocess_image(image_base64: str):
-    """Decode base64 image and apply transforms"""
-    image_bytes = base64.b64decode(image_base64)
-    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    return image_transform(image).unsqueeze(0)  # add batch dimension
+# --- Load Informative Model
+informative_model = InformativeNet(num_classes=2)
+informative_model.load_state_dict(torch.load("models/src_informative/best_informative_model.pth", map_location=device))
+informative_model.to(device)
+informative_model.eval()
 
-def predict(text: str, image_base64: str):
-    """Run prediction given text and base64-encoded image"""
-    # Tokenize text
-    inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+# --- Class mappings
+HUMANITARIAN_LABELS = {0: "not_humanitarian", 1: "rescue_volunteering_or_donation_effort",
+    2: "infrastructure_and_utilities_damage", 3: "affected_individuals", 4: "injured_or_dead_people",
+    5: "missing_or_found_people", 6: "other_relevant_information"}
 
-    # Preprocess image
-    image_tensor = preprocess_image(image_base64)
+INFORMATIVE_LABELS = {0: "not_informative", 1: "informative"}
 
-    # Run inference
+
+def predict(text: str, image_bytes: bytes):
+    # --- Text encoding
+    encoding = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=512)
+    input_ids = encoding["input_ids"].to(device)
+    attention_mask = encoding["attention_mask"].to(device)
+
+    # --- Image preprocessing
+    image = Image.open(BytesIO(image_bytes)).convert("RGB")
+    image_tensor = image_transform(image).unsqueeze(0).to(device)
+
+    # --- Step 1: Informative prediction
     with torch.no_grad():
-        logits = model(
-            input_ids=inputs["input_ids"],
-            attention_mask=inputs["attention_mask"],
-            image=image_tensor
-        )
-        probs = torch.softmax(logits, dim=1)
-        confidence, prediction = torch.max(probs, dim=1)
+        informative_logits = informative_model(input_ids=input_ids, attention_mask=attention_mask, image=image_tensor)
+        informative_pred = torch.argmax(informative_logits, dim=1).item()
+        informative_label = INFORMATIVE_LABELS[informative_pred]
 
-    label = "disaster" if prediction.item() == 1 else "not_disaster"
+    # --- Step 2: Humanitarian prediction (if applicable)
+    humanitarian_label = None
+    if informative_label == "informative":
+        with torch.no_grad():
+            hum_logits = humanitarian_model(input_ids=input_ids, attention_mask=attention_mask, image=image_tensor)
+            hum_pred = torch.argmax(hum_logits, dim=1).item()
+            humanitarian_label = HUMANITARIAN_LABELS[hum_pred]
 
-    return {
-        "label": label,
-        "confidence": round(confidence.item(), 3)
-    }
+    return {"informative": informative_label, "humanitarian": humanitarian_label}
