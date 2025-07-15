@@ -6,7 +6,12 @@ models/data/
 models/src_informative/__pycache__/
 models/src_humanitarian/__pycache__/
 models/src_humanitarian/best_confusion_matrix.png
-models/src_humanitarian/best_f1_model.pth
+models/src_humanitarian/best_humanitarian_model.pth
+models/src_damage/best_damage_model.pth
+models/src_damage/best_f1_model.pth
+models/src_damage/best_confusion_matrix.png
 backend/__pycache__
 models/src_informative/best_humanitarian_model.pth
 backend/__pycache__/
+__pycache__/
+*.pyc

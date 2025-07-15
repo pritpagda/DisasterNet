@@ -1,17 +1,19 @@
+import random
+
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
 import torch
 import torch.nn as nn
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-import random
-from torch.utils.data import DataLoader
-from torch.optim import AdamW
-from transformers import get_linear_schedule_with_warmup
-from torchvision import transforms
-from torch.amp import autocast, GradScaler
 from sklearn.metrics import f1_score, classification_report, confusion_matrix
-from data_loader import HumanitarianDataset
-from model import HumanitarianNetV1
+from torch.amp import autocast, GradScaler
+from torch.optim import AdamW
+from torch.utils.data import DataLoader
+from torchvision import transforms
+from transformers import get_linear_schedule_with_warmup
+
+from data_loader import DamageDataset
+from model import DamageNetV1
 
 
 def set_seed(seed=42):
@@ -26,8 +28,7 @@ def set_seed(seed=42):
 def plot_confusion_matrix(cm, class_names, file_path="best_confusion_matrix.png"):
     try:
         figure = plt.figure(figsize=(8, 8), dpi=100)
-        sns.heatmap(cm, annot=True, fmt='d', cmap=plt.cm.Blues,
-                    xticklabels=class_names, yticklabels=class_names)
+        sns.heatmap(cm, annot=True, fmt='d', cmap=plt.cm.Blues, xticklabels=class_names, yticklabels=class_names)
         plt.ylabel('True label')
         plt.xlabel('Predicted label')
         plt.title('Confusion Matrix for Best F1 Score')
@@ -39,7 +40,7 @@ def plot_confusion_matrix(cm, class_names, file_path="best_confusion_matrix.png"
 
 
 class EarlyStopping:
-    def __init__(self, patience=5, verbose=False, delta=0, path='best_humanitarian_model.pth'):
+    def __init__(self, patience=5, verbose=False, delta=0, path='best_damage_model.pth'):
         self.patience = patience
         self.verbose = verbose
         self.counter = 0
@@ -78,58 +79,49 @@ def train(config):
     print(f"Using device: {device}")
 
     IMAGE_DIR = '../data/'
-    TRAIN_CSV_PATH = '../data/processed_humanitarian/train.csv'
-    VAL_CSV_PATH = '../data/processed_humanitarian/dev.csv'
+    TRAIN_CSV_PATH = '../data/processed_damage/train.csv'
+    VAL_CSV_PATH = '../data/processed_damage/dev.csv'
 
-    train_transform = transforms.Compose([
-        transforms.RandomResizedCrop(224, scale=(0.8, 1.0)),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
+    train_transform = transforms.Compose(
+        [transforms.RandomResizedCrop(224, scale=(0.8, 1.0)), transforms.RandomHorizontalFlip(),
+            transforms.RandomRotation(15),
+            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1), transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ])
 
-    val_transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
+    val_transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]), ])
 
-    train_dataset = HumanitarianDataset(TRAIN_CSV_PATH, IMAGE_DIR, train_transform)
-    val_dataset = HumanitarianDataset(VAL_CSV_PATH, IMAGE_DIR, val_transform)
+    train_dataset = DamageDataset(TRAIN_CSV_PATH, IMAGE_DIR, train_transform)
+    val_dataset = DamageDataset(VAL_CSV_PATH, IMAGE_DIR, val_transform)
 
-    num_workers = 0  # Debug mode: Avoid DataLoader deadlocks
+    num_workers = 0
     pin_memory = torch.cuda.is_available()
 
+    # REMOVED the WeightedRandomSampler for now to improve stability
+    # Using simple shuffling instead.
     train_loader = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True,
-                              num_workers=num_workers, pin_memory=pin_memory)
-    val_loader = DataLoader(val_dataset, batch_size=config['batch_size'], shuffle=False,
-                            num_workers=num_workers, pin_memory=pin_memory)
+        # Using shuffle instead of a sampler
+        num_workers=num_workers, pin_memory=pin_memory)
+    val_loader = DataLoader(val_dataset, batch_size=config['batch_size'], shuffle=False, num_workers=num_workers,
+                            pin_memory=pin_memory)
 
-    model = HumanitarianNetV1(
-        num_classes=config['num_classes'],
-        unfreeze_bert_layers=config['unfreeze_bert_layers'],
-        unfreeze_resnet_layers=config['unfreeze_resnet_layers']
-    ).to(device)
+    model = DamageNetV1(num_classes=config['num_classes'], unfreeze_bert_layers=config['unfreeze_bert_layers'],
+                        unfreeze_resnet_layers=config['unfreeze_resnet_layers']).to(device)
 
+    # We will still use weighted loss, as it's a stable way to handle imbalance
     labels = [int(item['label']) for item in train_dataset]
     class_sample_count = np.bincount(labels, minlength=config['num_classes'])
-
-    if np.any(class_sample_count == 0):
-        print(f"⚠️ Warning: Classes with 0 samples: {np.where(class_sample_count == 0)[0]}")
-
     weight_per_class = 1. / (class_sample_count + 1e-6)
-    weight_per_class = np.clip(weight_per_class, a_min=None, a_max=100)
     weights = torch.tensor(weight_per_class, dtype=torch.float).to(device)
     criterion = nn.CrossEntropyLoss(weight=weights)
-    print(f"Using class weights: {weights.cpu().numpy()}")
+    print(f"Using class weights in loss function: {weights.cpu().numpy()}")
 
     optimizer = AdamW(model.parameters(), lr=config['learning_rate'])
+    print(f"Successfully created optimizer with single learning rate: {config['learning_rate']}")
+
     total_steps = len(train_loader) * config['epochs']
-    scheduler = get_linear_schedule_with_warmup(
-        optimizer,
-        num_warmup_steps=int(0.1 * total_steps),
-        num_training_steps=total_steps
-    )
+    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=int(0.1 * total_steps),
+                                                num_training_steps=total_steps)
 
     scaler = GradScaler()
     early_stopping = EarlyStopping(patience=config['patience'], verbose=True)
@@ -159,15 +151,12 @@ def train(config):
                 scheduler.step()
                 total_train_loss += loss.item()
 
-                if i % 10 == 0:
-                    print(f"Batch {i}/{len(train_loader)} - Loss: {loss.item():.4f}")
         except Exception as e:
             print(f"🔥 Error during training batch: {e}")
             break
 
         avg_train_loss = total_train_loss / len(train_loader)
 
-        # Evaluation
         model.eval()
         all_preds = []
         all_labels = []
@@ -200,14 +189,14 @@ def train(config):
         expected_labels = list(range(config['num_classes']))
 
         print(f"Train Loss: {avg_train_loss:.4f} | Val Loss: {avg_val_loss:.4f} | Macro F1: {f1:.4f}")
-        print("Classification Report:\n", classification_report(
-            all_labels, all_preds, labels=expected_labels, target_names=class_names, zero_division=0
-        ))
+        print("Classification Report:\n",
+              classification_report(all_labels, all_preds, labels=expected_labels, target_names=class_names,
+                                    zero_division=0))
 
         if f1 > best_f1:
             best_f1 = f1
-            torch.save(model.state_dict(), "best_humanitarian_model.pth")
-            print(f"New best F1 score: {best_f1:.4f}. Model saved.")
+            torch.save(model.state_dict(), "best_f1_model.pth")
+            print(f"New best F1 score: {best_f1:.4f}. Model saved to 'best_f1_model.pth'.")
             cm = confusion_matrix(all_labels, all_preds, labels=expected_labels)
             plot_confusion_matrix(cm, class_names=class_names)
 
@@ -216,22 +205,16 @@ def train(config):
             print("🛑 Early stopping triggered.")
             break
 
-        torch.cuda.empty_cache()  # clean up memory after each epoch
+        torch.cuda.empty_cache()
 
     print("\n🎯 Training complete.")
-    print(f"Best model saved at 'best_humanitarian_model.pth' with Val Loss: {early_stopping.val_loss_min:.4f}")
-    print(f"Best Macro F1 Score: {best_f1:.4f}")
+    print(f"Best model (by val loss) saved at '{early_stopping.path}' with Val Loss: {early_stopping.val_loss_min:.4f}")
+    print(f"Best model (by F1 score) saved at 'best_f1_model.pth' with Macro F1 Score: {best_f1:.4f}")
 
 
 if __name__ == '__main__':
-    hyperparameters = {
-        'epochs': 25,
-        'patience': 5,
-        'batch_size': 16,
-        'learning_rate': 5e-6,
-        'unfreeze_bert_layers': 2,
-        'unfreeze_resnet_layers': 2,
-        'num_classes': 7,
-        'seed': 42
-    }
+    hyperparameters = {'epochs': 15, 'patience': 3, 'batch_size': 16, 'learning_rate': 1e-5,
+        'unfreeze_bert_layers': 1,  # Freezing almost all layers for stability
+        'unfreeze_resnet_layers': 1,  # Freezing almost all layers for stability
+        'num_classes': 3, 'seed': 42}
     train(hyperparameters)

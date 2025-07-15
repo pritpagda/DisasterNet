@@ -76,6 +76,47 @@ const PredictionPage = () => {
     }
   };
 
+  // Helper to render explanations for each category
+  const renderExplanation = (category: string) => {
+    const textExp = result?.text_explanations?.[category];
+    const imgExp = result?.image_explanations?.[category];
+
+    return (
+      <div key={category} className="mb-6">
+        <h3 className="font-semibold text-lg capitalize mb-2">{category} Explanation</h3>
+
+        {textExp ? (
+          Array.isArray(textExp) ? (
+            <ul className="list-disc list-inside max-h-40 overflow-auto text-sm mb-4">
+              {textExp.map(
+                (item: { word: string; weight: number }, idx: number) => (
+                  <li key={idx}>
+                    <span className="font-mono">{item.word}</span>:{" "}
+                    {item.weight.toFixed(4)}
+                  </li>
+                )
+              )}
+            </ul>
+          ) : (
+            <p className="whitespace-pre-wrap text-sm mb-4">{textExp}</p>
+          )
+        ) : (
+          <p className="text-sm italic mb-4">No text explanation available.</p>
+        )}
+
+        {imgExp ? (
+          <img
+            src={`data:image/png;base64,${imgExp}`}
+            alt={`${category} explanation heatmap`}
+            className="max-w-full rounded border"
+          />
+        ) : (
+          <p className="text-sm italic">No image explanation available.</p>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-md mx-auto p-6 bg-white rounded shadow mt-10 font-sans">
       <h1 className="text-2xl font-bold mb-6 text-center">Make a Prediction</h1>
@@ -171,16 +212,23 @@ const PredictionPage = () => {
             </div>
           )}
 
-          {!showExplanation && (
+          {result.damage && (
+            <div>
+              <strong>Damage Category:</strong>{" "}
+              <span className="inline-block px-3 py-1 rounded-full bg-red-200 text-red-800 font-semibold">
+                {result.damage}
+              </span>
+            </div>
+          )}
+
+          {!showExplanation ? (
             <button
               onClick={() => setShowExplanation(true)}
               className="mt-4 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
             >
-              Explain
+              Show Explanation
             </button>
-          )}
-
-          {showExplanation && (
+          ) : (
             <>
               <button
                 onClick={() => setShowExplanation(false)}
@@ -189,38 +237,14 @@ const PredictionPage = () => {
                 Hide Explanation
               </button>
 
-              {result.text_explanation && (
-                <div className="mt-4">
-                  <strong>Text Explanation:</strong>
-                  {Array.isArray(result.text_explanation) ? (
-                    <ul className="list-disc list-inside max-h-40 overflow-auto text-sm">
-                      {result.text_explanation.map(
-                        (item: { word: string; weight: number }, idx: number) => (
-                          <li key={idx}>
-                            <span className="font-mono">{item.word}</span>:{" "}
-                            {item.weight.toFixed(4)}
-                          </li>
-                        )
-                      )}
-                    </ul>
-                  ) : (
-                    <p className="whitespace-pre-wrap text-sm">{result.text_explanation}</p>
-                  )}
-                </div>
-              )}
-
-              {result.image_explanation && (
-                <div className="mt-4">
-                  <strong>Image Explanation:</strong>
-                  <div className="mt-2">
-                    <img
-                      src={`data:image/png;base64,${result.image_explanation}`}
-                      alt="Image Explanation Heatmap"
-                      className="max-w-full rounded border"
-                    />
-                  </div>
-                </div>
-              )}
+              <div className="mt-4 max-h-[400px] overflow-auto">
+                {/* Loop over available explanation categories */}
+                {["informative", "humanitarian", "damage"].map((cat) =>
+                  (result.text_explanations?.[cat] || result.image_explanations?.[cat]) ? (
+                    renderExplanation(cat)
+                  ) : null
+                )}
+              </div>
             </>
           )}
         </div>

@@ -4,6 +4,7 @@ from fastapi import FastAPI, Depends, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from .app.batch_predict import process_batch
 from .app.auth import get_current_user
 from .app.database import connect_to_db
 from .app.predict_explain import predict_explain
@@ -44,3 +45,10 @@ async def predict_post(text: str = Form(...), image: UploadFile = File(...)):
     image_bytes = await image.read()
     result = predict_explain(text, image_bytes)
     return JSONResponse(result)
+
+
+@app.post("/predict-batch")
+async def predict_batch_endpoint(images_zip: UploadFile = File(...), texts_csv: UploadFile = File(...)):
+    images_bytes = await images_zip.read()
+    texts_bytes = await texts_csv.read()
+    return process_batch(images_bytes, texts_bytes)

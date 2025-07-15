@@ -63,18 +63,27 @@ def test_model(csv_path, image_dir, model_path, batch_size=16, num_classes=7):
     f1 = f1_score(all_labels, all_preds, average='macro', zero_division=0)
     class_names = [f"class_{i}" for i in range(num_classes)]
 
+    # Fix: Use only the classes present in the test labels to avoid mismatch
+    unique_classes = np.unique(all_labels)
+
     print(f"Test Macro F1 Score: {f1:.4f}")
     print("Classification Report:")
-    print(classification_report(all_labels, all_preds, target_names=class_names, zero_division=0))
+    print(classification_report(
+        all_labels,
+        all_preds,
+        labels=unique_classes,
+        target_names=[class_names[i] for i in unique_classes],
+        zero_division=0
+    ))
 
-    cm = confusion_matrix(all_labels, all_preds)
-    plot_confusion_matrix(cm, class_names)
+    cm = confusion_matrix(all_labels, all_preds, labels=unique_classes)
+    plot_confusion_matrix(cm, [class_names[i] for i in unique_classes])
 
     print(f"Confusion matrix saved as 'confusion_matrix.png'")
 
 if __name__ == '__main__':
     TEST_CSV_PATH = '../data/processed_humanitarian/test.csv'
     IMAGE_DIR = '../data/'
-    MODEL_PATH = 'best_f1_model.pth'
+    MODEL_PATH = 'best_humanitarian_model.pth'
 
     test_model(TEST_CSV_PATH, IMAGE_DIR, MODEL_PATH, batch_size=16, num_classes=7)
