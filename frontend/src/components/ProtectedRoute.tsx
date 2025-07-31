@@ -21,15 +21,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }, []);
 
   if (loading) {
-    return <div>Loading...</div>; // Or your spinner/loading UI
+    return <div>Loading...</div>;
   }
 
   if (!user) {
-    // Not authenticated → redirect to login page, preserve requested path for redirect after login
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
-
-  // Authenticated → render children components (the protected page)
   return <>{children}</>;
 };
 
