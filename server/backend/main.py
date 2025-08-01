@@ -18,8 +18,8 @@ from .app.schemas import FeedbackRequest
 
 app = FastAPI(title="DisasterNet")
 load_dotenv
-imagekit = ImageKit(private_key='private_sqI/YAr2YI/A4Ib57abo+lF7+nU=',
-                    public_key='public_/vuPbpbnQgk7J1oEKxFHSfqDN8Y=', url_endpoint='https://ik.imagekit.io/9mzgc4jgu')
+imagekit = ImageKit(private_key=os.getenv("PRIVATE_KEY"),
+                    public_key=os.getenv("PUBLIC_KEY"), url_endpoint=os.getenv("URL_ENDPOINT"))
 
 origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
 origins = [origin.strip() for origin in origins if origin.strip()]
