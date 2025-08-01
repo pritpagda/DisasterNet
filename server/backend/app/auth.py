@@ -10,7 +10,10 @@ from sqlalchemy.orm import Session
 from .db import get_db
 from .models import User
 
-CREDENTIAL_FILE_PATH = os.path.join("backend", "app", "disaster-feea2-firebase-adminsdk-fbsvc-054b28de48.json")
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CREDENTIAL_FILE_PATH = os.path.join(BASE_DIR, "disaster-feea2-firebase-adminsdk-fbsvc-054b28de48.json")
 
 if not os.path.exists(CREDENTIAL_FILE_PATH):
     raise RuntimeError(f"Firebase credential file not found at {CREDENTIAL_FILE_PATH}")
