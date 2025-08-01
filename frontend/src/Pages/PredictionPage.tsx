@@ -120,9 +120,7 @@ const PredictionPage: React.FC = () => {
             const token = await user.getIdToken();
 
             await api.post("/feedback", {
-                prediction_id: Number(result?.id),
-                correct: feedback.correct,
-                comments: feedback.comments.trim() ||"",
+                prediction_id: Number(result?.id), correct: feedback.correct, comments: feedback.comments.trim() || "",
             }, {
                 headers: {
                     Authorization: `Bearer ${token}`,
@@ -139,10 +137,8 @@ const PredictionPage: React.FC = () => {
             let errorMessage: string;
 
             if (Array.isArray(detail)) {
-                // Handles FastAPI validation errors (422)
                 errorMessage = detail.map((d: any) => d.msg).join(", ");
             } else if (typeof detail === "string") {
-                // Handles string-based custom errors (e.g., from HTTPException)
                 errorMessage = detail;
             } else {
                 errorMessage = err.message || fallbackMessage;

@@ -15,6 +15,7 @@ from .app.db import get_db
 from .app.models import Prediction, Feedback
 from .app.predict_explain import predict_explain
 from .app.schemas import FeedbackRequest
+
 app = FastAPI(title="DisasterNet")
 load_dotenv
 imagekit = ImageKit(private_key='private_sqI/YAr2YI/A4Ib57abo+lF7+nU=',

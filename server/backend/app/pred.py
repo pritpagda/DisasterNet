@@ -5,12 +5,11 @@ import torch
 from PIL import Image
 from dotenv import load_dotenv
 from huggingface_hub import hf_hub_download
-from torchvision import transforms
-from transformers import BertTokenizer
-
 from models.src_damage.model import DamageNetV1
 from models.src_humanitarian.model import HumanitarianNetV1
 from models.src_informative.model import InformativeNet
+from torchvision import transforms
+from transformers import BertTokenizer
 
 load_dotenv()
 hf_token = os.getenv("HF_TOKEN")
