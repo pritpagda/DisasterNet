@@ -79,9 +79,7 @@ const BatchPredictionPage: React.FC = () => {
             window.URL.revokeObjectURL(url);
 
             setStatus({
-                loading: false,
-                error: null,
-                success: 'Batch prediction completed! Your CSV file has been downloaded.',
+                loading: false, error: null, success: 'Batch prediction completed! Your CSV file has been downloaded.',
             });
         } catch (err: any) {
             const errorMsg = err.response?.data?.message || 'Batch prediction failed. Please check your files and try again.';

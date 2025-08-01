@@ -19,5 +19,4 @@ __pycache__/
 *.pyc
 /test_output_image.jpg
 .env
-server/
 
