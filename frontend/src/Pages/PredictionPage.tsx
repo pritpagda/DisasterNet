@@ -98,56 +98,86 @@ const PredictionPage: React.FC = () => {
 
     const handleFeedbackSubmit = async (e: FormEvent) => {
         e.preventDefault();
+
         if (!feedback.correct) {
-            return setFeedback((prev) => ({...prev, error: "Please select whether the prediction was correct."}));
+            return setFeedback((prev) => ({
+                ...prev, error: "Please select whether the prediction was correct.",
+            }));
         }
+
         const user = auth.currentUser;
         if (!user) {
-            return setFeedback((prev) => ({...prev, error: "You must be logged in."}));
+            return setFeedback((prev) => ({
+                ...prev, error: "You must be logged in.",
+            }));
         }
 
-        setFeedback((prev) => ({...prev, loading: true, error: null}));
+        setFeedback((prev) => ({
+            ...prev, loading: true, error: null, success: null,
+        }));
+
         try {
             const token = await user.getIdToken();
+
             await api.post("/feedback", {
                 prediction_id: Number(result?.id),
-                correct: feedback.correct === "yes",
-                comments: feedback.comments.trim() || null,
-            }, {headers: {Authorization: `Bearer ${token}`}});
-            setFeedback((prev) => ({...prev, success: "Thank you for your feedback!", submitted: true}));
+                correct: feedback.correct,
+                comments: feedback.comments.trim() ||"",
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            setFeedback((prev) => ({
+                ...prev, success: "Thank you for your feedback!", submitted: true, loading: false,
+            }));
         } catch (err: any) {
-            setFeedback((prev) => ({...prev, error: err.response?.data?.detail || "Failed to submit feedback."}));
-        } finally {
-            setFeedback((prev) => ({...prev, loading: false}));
+            const fallbackMessage = "Failed to submit feedback.";
+            const detail = err.response?.data?.detail;
+
+            let errorMessage: string;
+
+            if (Array.isArray(detail)) {
+                // Handles FastAPI validation errors (422)
+                errorMessage = detail.map((d: any) => d.msg).join(", ");
+            } else if (typeof detail === "string") {
+                // Handles string-based custom errors (e.g., from HTTPException)
+                errorMessage = detail;
+            } else {
+                errorMessage = err.message || fallbackMessage;
+            }
+
+            setFeedback((prev) => ({
+                ...prev, error: errorMessage, loading: false,
+            }));
         }
     };
 
-    const renderExplanation = (category: ExplanationCategory) => {
-        const textExp = result?.text_explanations?.[category];
-        const imgExp = result?.image_explanations?.[category];
 
-        return (<div key={category} className="mb-6 p-4 bg-slate-900/50 rounded-lg border border-slate-700">
-            <h4 className="font-semibold text-lg capitalize mb-3 text-cyan-400">{category} Explanation</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <h5 className="font-medium text-slate-300 mb-2">Text Analysis</h5>
-                    {textExp && Array.isArray(textExp) ? (<div
-                        className="text-sm text-slate-400 space-y-1 max-h-48 overflow-auto pr-2 custom-scrollbar">
-                        {textExp.map((item, idx) => (<div key={idx}>
-                            <span className="font-mono text-slate-200">{item.word}</span>: <span
-                            className="text-fuchsia-400">{item.weight.toFixed(4)}</span>
-                        </div>))}
-                    </div>) : <p className="text-sm italic text-slate-500">No text explanation available.</p>}
-                </div>
-                <div>
-                    <h5 className="font-medium text-slate-300 mb-2">Image Analysis</h5>
-                    {imgExp ? <img src={`data:image/png;base64,${imgExp}`} alt={`${category} explanation heatmap`}
-                                   className="w-full rounded-md border border-slate-600 shadow-lg"/> :
-                        <p className="text-sm italic text-slate-500">No image explanation available.</p>}
-                </div>
-            </div>
+    const renderExplanation = (category: ExplanationCategory) => {
+        if (!result) return null;
+
+        const textExp = result.text_explanations?.[category];
+        const imgExp = result.image_explanations?.[category];
+
+        if (!textExp && !imgExp) {
+            return null;
+        }
+
+        return (<div>
+            {imgExp && <img src={imgExp} alt={`${category} explanation heatmap`}/>}
+            {textExp && (<div>
+                {Array.isArray(textExp) ? (<p>
+                    {textExp.map((item, index) => (
+                        <span key={index} style={{backgroundColor: `rgba(255, 235, 59, ${item.weight})`}}>
+                  {item.word}
+                </span>))}
+                </p>) : (<p>{textExp}</p>)}
+            </div>)}
         </div>);
     };
+
 
     return (<div className="min-h-screen bg-slate-900 text-white flex flex-col font-sans">
         <NavBar/>
