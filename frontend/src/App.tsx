@@ -1,6 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import AuthTestPage from "./Pages/AuthTestPage"; // or wherever your component is
+import AuthTestPage from "./Pages/AuthPage"; // or wherever your component is
 import PredictionPage from "./Pages/PredictionPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import HistoryPage from "./Pages/HistoryPage";

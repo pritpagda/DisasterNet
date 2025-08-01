@@ -16,11 +16,8 @@ type PredictionResult = {
 
 type ExplanationCategory = "informative" | "humanitarian" | "damage";
 
-const IMAGEKIT_PUBLIC_KEY = "public_/vuPbpbnQgk7J1oEKxFHSfqDN8Y=";
-const IMAGEKIT_URL_ENDPOINT = "https://ik.imagekit.io/9mzgc4jgu";
-
 const imagekit = new ImageKit({
-    urlEndpoint: IMAGEKIT_URL_ENDPOINT, publicKey: IMAGEKIT_PUBLIC_KEY,
+    urlEndpoint: process.env.REACT_APP_IMAGEKIT_URL_ENDPOINT!, publicKey: process.env.REACT_APP_IMAGEKIT_PUBLIC_KEY!,
 });
 
 const PredictionPage: React.FC = () => {

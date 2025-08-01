@@ -148,7 +148,7 @@ const AuthForm = () => {
         <div className="w-full max-w-md">
             <motion.div initial={{opacity: 0, y: -20}} animate={{opacity: 1, y: 0}} className="mb-8 text-center">
                 <ShieldCheck className="mx-auto h-12 w-12 text-cyan-400"/>
-                <h1 className="mt-4 text-3xl font-bold text-slate-100">DisasterAI</h1>
+                <h1 className="mt-4 text-3xl font-bold text-slate-100">DisasterNet</h1>
                 <p className="text-slate-400 mt-2">Sign in or create an account to continue</p>
             </motion.div>
 

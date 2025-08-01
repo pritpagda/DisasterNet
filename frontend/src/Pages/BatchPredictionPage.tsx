@@ -128,7 +128,7 @@ const BatchPredictionPage: React.FC = () => {
                 <section className="mb-8 bg-slate-900/50 border border-slate-700 rounded-lg p-6 text-slate-300">
                     <h2 className="text-lg font-semibold mb-3 text-cyan-400">Instructions</h2>
                     <ul className="list-disc list-inside space-y-2 text-sm">
-                        <li>Upload a <b className="text-slate-100">CSV file</b> with two columns: `image_name` and
+                        <li>Upload a <b className="text-slate-100">CSV file</b> with two columns: `image path` and
                             `text`.
                         </li>
                         <li>Upload a <b className="text-slate-100">ZIP archive</b> containing all corresponding

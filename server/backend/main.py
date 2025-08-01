@@ -1,6 +1,8 @@
 import datetime
+import os
 
 import requests
+from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -13,13 +15,14 @@ from .app.db import get_db
 from .app.models import Prediction, Feedback
 from .app.predict_explain import predict_explain
 from .app.schemas import FeedbackRequest
-
 app = FastAPI(title="DisasterNet")
-
+load_dotenv
 imagekit = ImageKit(private_key='private_sqI/YAr2YI/A4Ib57abo+lF7+nU=',
                     public_key='public_/vuPbpbnQgk7J1oEKxFHSfqDN8Y=', url_endpoint='https://ik.imagekit.io/9mzgc4jgu')
 
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"],
+origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
+origins = [origin.strip() for origin in origins if origin.strip()]
+app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"],
                    allow_headers=["*"], )
 
 
