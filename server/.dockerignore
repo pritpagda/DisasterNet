@@ -1,0 +1,17 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.env
+
+.git
+.gitignore
+venv
+.env.local
+*.sqlite3
+.DS_Store
+models/data/
+models/src_damage/best_damage_model.pth
+models/src_humanitarian/best_humanitarian_model.pth
+models/src_informative/best_informative_model.pth
+

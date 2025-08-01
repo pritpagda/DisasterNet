@@ -4,8 +4,8 @@ from io import BytesIO
 import torch
 from PIL import Image
 
+from .predict import predict
 from .pred import (
-    predict,
     informative_model,
     humanitarian_model,
     damage_model,
@@ -14,6 +14,9 @@ from .pred import (
 )
 from .utils.attention import extract_attention_weights
 from .utils.gradcam import GradCAM
+
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def predict_explain(text: str, image_bytes: bytes, user_id: int = None, db=None, image_filename: str = None):
@@ -26,10 +29,11 @@ def predict_explain(text: str, image_bytes: bytes, user_id: int = None, db=None,
     )
 
     image = Image.open(BytesIO(image_bytes)).convert("RGB")
-    image_tensor = image_transform(image).unsqueeze(0).to(informative_model.device)
+    image_tensor = image_transform(image).unsqueeze(0).to(device)
+
     encoding = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
-    input_ids = encoding["input_ids"].to(informative_model.device)
-    attention_mask = encoding["attention_mask"].to(informative_model.device)
+    input_ids = encoding["input_ids"].to(device)
+    attention_mask = encoding["attention_mask"].to(device)
 
     image_explanations = {}
     text_explanations = {}
