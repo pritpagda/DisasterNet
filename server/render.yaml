@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: fastapi-app
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    repo: https://github.com/pritpagda/DisasterNet
+    branch: main
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromService:
+          type: pserv
+          name: fastapi-db
+          property: connectionString
+      - key: ENV
+        value: production  # Or whatever your .env needs
+
+  - type: pserv
+    name: fastapi-db
+    plan: free
+    postgresVersion: 15
+    databaseName: devdb
+    user: devuser

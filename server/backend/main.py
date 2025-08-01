@@ -28,7 +28,7 @@ app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True
 
 @app.get("/")
 def root():
-    return {"status": "ok", "time": datetime.datetime.utcnow().isoformat()}
+    return {"status": "not ok", "time": datetime.datetime.utcnow().isoformat()}
 
 
 @app.get("/auth/me")
