@@ -1,24 +1,33 @@
 services:
   - type: web
-    name: fastapi-app
+    name: DisasterNet
     env: docker
+    dockerfilePath: Dockerfile
     plan: free
-    dockerfilePath: ./Dockerfile
-    repo: https://github.com/pritpagda/DisasterNet
-    branch: main
     autoDeploy: true
     envVars:
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: DisasterNetDB
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: DisasterNetDB
+          property: password
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: DisasterNetDB
+          property: database
       - key: DATABASE_URL
-        fromService:
-          type: pserv
-          name: fastapi-db
+        fromDatabase:
+          name: DisasterNetDB
           property: connectionString
-      - key: ENV
-        value: production  # Or whatever your .env needs
+    ports:
+      - 8000
 
-  - type: pserv
-    name: fastapi-db
+databases:
+  - name: DisasterNetDB
+    engine: postgresql
+    version: 15
     plan: free
-    postgresVersion: 15
-    databaseName: devdb
-    user: devuser
+    region: oregon
